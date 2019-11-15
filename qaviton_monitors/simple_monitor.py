@@ -1,8 +1,8 @@
-import time
 import psutil
-import datetime
 import multiprocessing
+from time import time, sleep
 from threaders import threaders
+from datetime import datetime, timedelta
 from qaviton_monitors.log import monitor_logger
 
 
@@ -23,13 +23,13 @@ class NetBan:
         i2, o2 = net_io()
         self.bytes_recv = (i1, i2)
         self.bytes_sent = (o1, o2)
-        self.timedelta = (time.time(), time.time())
+        self.timedelta = (time(), time())
 
     def convert(self, measurement):
         return round((measurement[1] - measurement[0]) * bitsize.by / bitsize.gb / (self.timedelta[1] - self.timedelta[0]), 3)
 
     def measure(self, bytes_recv, bytes_sent):
-        self.timedelta = (self.timedelta[1], time.time())
+        self.timedelta = (self.timedelta[1], time())
         self.bytes_recv = (self.bytes_recv[1], bytes_recv)
         self.bytes_sent = (self.bytes_sent[1], bytes_sent)
 
@@ -46,7 +46,7 @@ def system_stats():
         "disk": psutil.disk_usage("/").percent,
         "pids": len(psutil.pids()),
         "boot_time": boot_time,
-        "uptime": time.time() - boot_time,
+        "uptime": time() - boot_time,
     }
 
 
@@ -57,8 +57,8 @@ def system_stats_raw():
         "cpu": psutil.cpu_percent(),
         "disk": psutil.disk_usage("/"),
         "pids": len(psutil.pids()),
-        "boot_time": datetime.datetime.fromtimestamp(boot_time),
-        "uptime": time.time() - boot_time,
+        "boot_time": datetime.fromtimestamp(boot_time),
+        "uptime": time() - boot_time,
         "net": net_io()
     }
 
@@ -67,7 +67,7 @@ def bytes_to_GB(bytes):
     return round(bytes/bitsize.gb, 3)
 
 
-def monitor():
+def monitor(delay:float=2.0):
     def get_stats():
         """:rtype: threaders.Thread"""
         stats = system_stats_raw()
@@ -90,7 +90,7 @@ def monitor():
     net = NetBan()
 
     print(f"Last Boot: {stats['boot_time']}")
-    print(f"System Uptime: {datetime.timedelta(seconds=stats['uptime'])}\n")
+    print(f"System Uptime: {timedelta(seconds=stats['uptime'])}\n")
 
     print(f"CPU Cores {multiprocessing.cpu_count()}")
     print(
@@ -107,11 +107,11 @@ def monitor():
     )
 
     stop_thread = quit()
-    time.sleep(2)
+    sleep(delay)
     log = monitor_logger()
 
     while stop_thread.is_alive():
         get_stats()
-        time.sleep(2)
+        sleep(delay)
 
     stop_thread.join()
